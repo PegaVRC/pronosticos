@@ -5,7 +5,7 @@
  */
 
 import { LIMITE_LLAMADAS } from '../config.js';
-import { obtenerApiKey, guardarApiKey, borrarApiKey, obtenerProxy, guardarProxy } from '../storage.js';
+import { obtenerApiKey, guardarApiKey, borrarApiKey, obtenerProxy, guardarProxy, normalizarProxy } from '../storage.js';
 import { vaciarCache } from '../cache.js';
 import { llamadasDisponibles } from '../limitador.js';
 import { obtenerPartidosLiga } from '../api.js';
@@ -97,6 +97,7 @@ export async function vistaConfig(contenedor) {
     }
     guardarApiKey(nuevaKey);
     guardarProxy(proxyNuevo);
+    inputProxy.value = normalizarProxy(proxyNuevo); // muestra la dirección completa
     return true;
   }
 

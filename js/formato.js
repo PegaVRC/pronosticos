@@ -36,9 +36,30 @@ export const fechaCorta = (iso) =>
 
 /** Clave AAAA-MM-DD en hora local, para agrupar partidos por día */
 export function claveDia(iso) {
-  const d = new Date(iso);
+  const d = new Date(iso); // acepta texto ISO o un objeto Date
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 /** Cuota decimal con 2 decimales mínimo: 1.8 → "1,80" */
 export const cuota = (c) => c.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+/** "2026-11-16" → Date a las 00:00 en hora local */
+export function fechaDeClave(clave) {
+  const [a, m, d] = clave.split('-').map(Number);
+  return new Date(a, m - 1, d);
+}
+
+/** Clave del día de hoy (hora local), desplazada `dias` días */
+export function claveHoy(dias = 0) {
+  const d = new Date();
+  d.setDate(d.getDate() + dias);
+  return claveDia(d);
+}
+
+/** Etiqueta corta de un día: "Hoy", "Mañana", "Ayer" o "sáb 22 nov" */
+export function etiquetaDia(clave) {
+  if (clave === claveHoy()) return 'Hoy';
+  if (clave === claveHoy(1)) return 'Mañana';
+  if (clave === claveHoy(-1)) return 'Ayer';
+  return fechaDeClave(clave).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
+}

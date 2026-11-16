@@ -130,3 +130,12 @@ test('Forma reciente, resumen de goles y signo', () => {
   assert.equal(signo(1, 1), 'X');
   assert.equal(signo(0, 3), '2');
 });
+
+test('El proxy se completa con "/?url=" si falta', async () => {
+  // storage.js usa localStorage solo al leer o escribir; normalizarProxy es pura
+  const { normalizarProxy } = await import('../js/storage.js');
+  assert.equal(normalizarProxy('https://x.workers.dev'), 'https://x.workers.dev/?url=');
+  assert.equal(normalizarProxy('https://x.workers.dev/'), 'https://x.workers.dev/?url=');
+  assert.equal(normalizarProxy('https://x.workers.dev/?url='), 'https://x.workers.dev/?url=');
+  assert.equal(normalizarProxy(''), '');
+});
