@@ -145,6 +145,21 @@ const tarjetas = await pagina.locator('.partido').count();
 assert.ok(tarjetas > 0, 'debe haber tarjetas de partidos');
 await captura('2-partidos');
 
+// 2b) Selector de fechas: "Ayer" muestra partidos terminados con su resultado
+await pagina.waitForSelector('.selector-fechas');
+assert.match(await pagina.textContent('.selector-fechas'), /Próximos.*Hoy/s);
+await pagina.goto(URL_APP + '#/partidos/PL/' + new Date(Date.now() - 4 * 86400000).toLocaleDateString('sv-SE'));
+await pagina.waitForSelector('.partido--terminado');
+assert.match(await pagina.textContent('.partido--terminado'), /Modelo (✓ acertó|✗ falló)/);
+await captura('2b-fecha-pasada');
+// Un día sin partidos sugiere el más cercano
+await pagina.goto(URL_APP + '#/partidos/PL/' + new Date(Date.now() - 2 * 86400000).toLocaleDateString('sv-SE'));
+await pagina.waitForSelector('.vacio .boton');
+await pagina.click('.vacio .boton');
+await pagina.waitForSelector('.partido');
+await pagina.goto(URL_APP + '#/partidos/PL');
+await pagina.waitForSelector('.partido');
+
 // 3) Caché: volver a la misma liga no llama a la API
 const antes = llamadasApi;
 await pagina.click('[data-liga=PD]');

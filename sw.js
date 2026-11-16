@@ -10,7 +10,7 @@
  * descarguen la versión nueva.
  */
 
-const VERSION = 'v4';
+const VERSION = 'v5';
 const CACHE_APP = `pronosticos-app-${VERSION}`;
 const CACHE_CDN = 'pronosticos-cdn-v1'; // Tesseract.js y sus datos de idioma
 const CACHE_COMPARTIDO = 'pronosticos-compartido';
