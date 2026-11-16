@@ -74,7 +74,10 @@ function temporadaFalsa(codigo) {
 
 /* ---------- Prueba ---------- */
 const navegador = await chromium.launch();
-const pagina = await navegador.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
+// El service worker se bloquea en el flujo principal para que Playwright intercepte la API;
+// se prueba aparte al final.
+const contexto = await navegador.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, serviceWorkers: 'block' });
+const pagina = await contexto.newPage();
 const erroresConsola = [];
 pagina.on('pageerror', (e) => erroresConsola.push(e.message));
 
@@ -196,6 +199,26 @@ if (process.env.SOLO_PARTIDOS !== '1') {
   await pagina.waitForSelector('text=Acierta el favorito');
   assert.match(await pagina.textContent('#app'), /Combinadas/);
   await captura('7-apuestas');
+}
+
+/* ---------- PWA: service worker y "Compartir" (Web Share Target) ---------- */
+{
+  const ctxPwa = await navegador.newContext();
+  const p = await ctxPwa.newPage();
+  await p.goto(URL_APP + '#/config');
+  await p.evaluate(() => navigator.serviceWorker.ready);
+  await p.reload(); // ahora la página está controlada por el service worker
+  // Simula lo que hace Android al compartir una imagen: POST multipart a ./compartir
+  const destino = await p.evaluate(async () => {
+    const fd = new FormData();
+    fd.append('imagen', new Blob([new Uint8Array([137, 80, 78, 71])], { type: 'image/png' }), 'cupon.png');
+    const r = await fetch('./compartir', { method: 'POST', body: fd, redirect: 'manual' });
+    const guardada = await caches.open('pronosticos-compartido').then((c) => c.match('compartido/imagen'));
+    return { tipo: r.type, guardada: !!guardada };
+  });
+  assert.equal(destino.tipo, 'opaqueredirect', 'el POST debe redirigir a la pantalla del cupón');
+  assert.ok(destino.guardada, 'la imagen compartida debe quedar guardada');
+  await ctxPwa.close();
 }
 
 assert.deepEqual(erroresConsola, [], `errores de JavaScript: ${erroresConsola.join(' | ')}`);

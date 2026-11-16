@@ -75,3 +75,11 @@ window.addEventListener('api:espera', (e) => {
 window.addEventListener('hashchange', navegar);
 navegar();
 
+
+// PWA: el service worker permite instalar la app, abrirla sin conexión
+// y recibir imágenes compartidas desde la galería (Android).
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch((e) => console.warn('Service worker no registrado:', e));
+  });
+}
