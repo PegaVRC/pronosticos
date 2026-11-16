@@ -11,13 +11,10 @@
  */
 
 import { leer, escribir } from './storage.js';
-import { obtenerPartidosLiga } from './api.js';
+import { buscarPartidos, deberiaHaberTerminado } from './resultados.js';
 import { signo } from './modelo.js';
 
 const CLAVE = 'historial';
-
-/** Margen tras el inicio antes de buscar el resultado (un partido dura ~2 h). */
-const MARGEN_FIN_MS = 2 * 60 * 60 * 1000;
 
 /** Lista completa (array). */
 export function obtenerHistorial() {
@@ -99,64 +96,37 @@ export function estadisticas(lista = obtenerHistorial()) {
 
 /** ¿Hay pronósticos pendientes cuyo partido ya debería haber terminado? */
 export function hayPendientesPorComprobar(lista = obtenerHistorial()) {
-  const ahora = Date.now();
-  return lista.some((e) => e.estado === 'pendiente' && new Date(e.fecha).getTime() + MARGEN_FIN_MS < ahora);
+  return lista.some((e) => e.estado === 'pendiente' && deberiaHaberTerminado(e.fecha));
 }
 
 /**
  * Busca los resultados de los partidos pendientes ya jugados.
- * Agrupa por liga: como mucho una llamada por liga (y ninguna si la caché está vigente).
  * @returns {Promise<{actualizados:number, errores:string[]}>}
  */
 export async function actualizarResultados() {
   const lista = obtenerHistorial();
-  const ahora = Date.now();
-  const porComprobar = lista.filter(
-    (e) => e.estado === 'pendiente' && new Date(e.fecha).getTime() + MARGEN_FIN_MS < ahora
-  );
-  const ligas = [...new Set(porComprobar.map((e) => e.liga))];
-  const errores = [];
+  const porComprobar = lista.filter((e) => e.estado === 'pendiente' && deberiaHaberTerminado(e.fecha));
+  if (!porComprobar.length) return { actualizados: 0, errores: [] };
+
+  const { porId, errores } = await buscarPartidos(porComprobar);
   let actualizados = 0;
-
-  for (const liga of ligas) {
-    let datos;
-    try {
-      datos = await obtenerPartidosLiga(liga);
-    } catch (error) {
-      errores.push(error.message);
-      continue;
-    }
-    // Si la caché es de antes del final del partido, conviene pedir datos nuevos
-    const necesitaRecarga = porComprobar.some(
-      (e) => e.liga === liga && datos.guardado < new Date(e.fecha).getTime() + MARGEN_FIN_MS
-    );
-    if (necesitaRecarga && datos.desdeCache) {
-      try {
-        datos = await obtenerPartidosLiga(liga, { forzar: true });
-      } catch (error) {
-        errores.push(error.message);
-      }
-    }
-
-    const porId = new Map(datos.partidos.map((p) => [p.id, p]));
-    for (const entrada of porComprobar.filter((e) => e.liga === liga)) {
-      const partido = porId.get(entrada.id);
-      if (!partido) continue;
-      if (partido.estado === 'FINISHED' && partido.goles) {
-        entrada.estado = 'resuelto';
-        entrada.resultado = { ...partido.goles };
-        actualizados++;
-      } else if (partido.estado === 'CANCELLED' || partido.estado === 'AWARDED') {
-        entrada.estado = 'anulado';
-        actualizados++;
-      } else if (partido.fecha !== entrada.fecha) {
-        // Partido aplazado: se actualiza la fecha y sigue pendiente
-        entrada.fecha = partido.fecha;
-        actualizados++;
-      }
+  for (const entrada of porComprobar) {
+    const partido = porId.get(entrada.id);
+    if (!partido) continue;
+    if (partido.estado === 'FINISHED' && partido.goles) {
+      entrada.estado = 'resuelto';
+      entrada.resultado = { ...partido.goles };
+      actualizados++;
+    } else if (partido.estado === 'CANCELLED' || partido.estado === 'AWARDED') {
+      entrada.estado = 'anulado';
+      actualizados++;
+    } else if (partido.fecha !== entrada.fecha) {
+      // Partido aplazado: se actualiza la fecha y sigue pendiente
+      entrada.fecha = partido.fecha;
+      actualizados++;
     }
   }
 
   if (actualizados) guardarLista(lista);
-  return { actualizados, errores: [...new Set(errores)] };
+  return { actualizados, errores };
 }
