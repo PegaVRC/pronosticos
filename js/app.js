@@ -6,6 +6,7 @@
  *   #/partido/PL/123456   → detalle de un partido
  *   #/historial           → mis pronósticos
  *   #/apuestas            → cuotas, boleto y combinadas
+ *   #/cupon               → leer un cupón con una foto (OCR)
  *   #/config              → ajustes (API key)
  */
 
@@ -15,6 +16,7 @@ import { vistaPartidos } from './vistas/partidos.js';
 import { vistaDetalle } from './vistas/detalle.js';
 import { vistaHistorial } from './vistas/historial.js';
 import { vistaApuestas } from './vistas/apuestas.js';
+import { vistaCupon } from './vistas/cupon.js';
 import { vistaConfig } from './vistas/config.js';
 
 const rutas = {
@@ -22,6 +24,7 @@ const rutas = {
   partido: vistaDetalle,
   historial: vistaHistorial,
   apuestas: vistaApuestas,
+  cupon: vistaCupon,
   config: vistaConfig,
 };
 

@@ -10,7 +10,7 @@
  * descarguen la versión nueva.
  */
 
-const VERSION = 'v2';
+const VERSION = 'v3';
 const CACHE_APP = `pronosticos-app-${VERSION}`;
 const CACHE_CDN = 'pronosticos-cdn-v1'; // Tesseract.js y sus datos de idioma
 const CACHE_COMPARTIDO = 'pronosticos-compartido';
@@ -39,6 +39,7 @@ const ARCHIVOS = [
   'js/historial.js',
   'js/limitador.js',
   'js/mercados.js',
+  'js/ocr.js',
   'js/modelo.js',
   'js/resultados.js',
   'js/storage.js',
@@ -46,13 +47,14 @@ const ARCHIVOS = [
   'js/vistas/apuestas.js',
   'js/vistas/config.js',
   'js/vistas/cuotasPartido.js',
+  'js/vistas/cupon.js',
   'js/vistas/detalle.js',
   'js/vistas/historial.js',
   'js/vistas/partidos.js',
 ];
 
 /** Servidores de Tesseract.js: se guardan para que el OCR funcione sin conexión. */
-const HOSTS_CDN = ['cdn.jsdelivr.net', 'tessdata.projectnaptha.com'];
+const HOSTS_CDN = ['cdn.jsdelivr.net'];
 
 self.addEventListener('install', (evento) => {
   evento.waitUntil(

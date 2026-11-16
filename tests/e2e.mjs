@@ -36,10 +36,22 @@ const URL_APP = `http://localhost:${servidor.address().port}/`;
 const DIA = 86400000;
 function temporadaFalsa(codigo) {
   const base = { PL: 100, PD: 200, SA: 300, CL: 400 }[codigo];
+  // La Premier usa nombres reales (completo y corto, como la API) para probar el emparejador
+  const NOMBRES_PL = [
+    ['Arsenal FC', 'Arsenal', 'ARS'],
+    ['Manchester City FC', 'Man City', 'MCI'],
+    ['Liverpool FC', 'Liverpool', 'LIV'],
+    ['Chelsea FC', 'Chelsea', 'CHE'],
+    ['Tottenham Hotspur FC', 'Tottenham', 'TOT'],
+    ['Manchester United FC', 'Man United', 'MUN'],
+    ['Newcastle United FC', 'Newcastle', 'NEW'],
+    ['Aston Villa FC', 'Aston Villa', 'AVL'],
+  ];
   const equipos = Array.from({ length: 8 }, (_, i) => ({
     id: base + i,
-    name: `${codigo} Club ${i + 1}`,
-    shortName: `${codigo} Club ${i + 1}`,
+    name: codigo === 'PL' ? NOMBRES_PL[i][0] : `${codigo} Club ${i + 1}`,
+    shortName: codigo === 'PL' ? NOMBRES_PL[i][1] : `${codigo} Club ${i + 1}`,
+    tla: codigo === 'PL' ? NOMBRES_PL[i][2] : '',
     crest: '',
   }));
   const matches = [];
@@ -80,6 +92,25 @@ const contexto = await navegador.newContext({ viewport: { width: 390, height: 84
 const pagina = await contexto.newPage();
 const erroresConsola = [];
 pagina.on('pageerror', (e) => erroresConsola.push(e.message));
+
+/* ---------- Tesseract.js local (los CDN no siempre son accesibles en pruebas) ---------- */
+const TESS_LOCAL = process.env.TESS_LOCAL || '';
+if (TESS_LOCAL) {
+  const RUTAS_TESS = [
+    ['https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/', 'x-tesseract.js-5.1.1/package/dist/'],
+    ['https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1/', 'x-tesseract.js-core-5.1.1/package/'],
+    ['https://cdn.jsdelivr.net/npm/@tesseract.js-data/spa@1.0.0/', 'x-tesseract.js-data-spa-1.0.0/package/'],
+  ];
+  await contexto.route('https://cdn.jsdelivr.net/**', (route) => {
+    const url = route.request().url();
+    const par = RUTAS_TESS.find(([prefijo]) => url.startsWith(prefijo));
+    if (!par) return route.fulfill({ status: 404 });
+    const archivo = path.join(TESS_LOCAL, par[1], url.slice(par[0].length));
+    if (!fs.existsSync(archivo)) return route.fulfill({ status: 404 });
+    const tipo = archivo.endsWith('.wasm') ? 'application/wasm' : archivo.endsWith('.js') ? 'text/javascript' : 'application/octet-stream';
+    route.fulfill({ status: 200, body: fs.readFileSync(archivo), headers: { 'Content-Type': tipo, 'Access-Control-Allow-Origin': '*' } });
+  });
+}
 
 let llamadasApi = 0;
 let ultimaKey = '';
@@ -199,6 +230,63 @@ if (process.env.SOLO_PARTIDOS !== '1') {
   await pagina.waitForSelector('text=Acierta el favorito');
   assert.match(await pagina.textContent('#app'), /Combinadas/);
   await captura('7-apuestas');
+
+  // 10) Leer cupón con OCR REAL (Tesseract.js servido desde una copia local)
+  if (TESS_LOCAL) {
+    await probarCupon();
+  } else {
+    console.log('ℹ️  Prueba de OCR omitida (define TESS_LOCAL con la carpeta de Tesseract.js).');
+  }
+}
+
+/**
+ * Crea una imagen de cupón en "modo oscuro" con dos selecciones de partidos
+ * próximos (escritos con nombres distintos a los de la API) y la lee.
+ */
+async function probarCupon() {
+  const proximos = temporadaFalsa('PL').matches.filter((m) => m.status === 'TIMED');
+  const [m1, m2] = [proximos[0], proximos[1]];
+  // Nombres como los escribiría una casa de apuestas (completos, sin "FC")
+  const nombre = (e) => e.name.replace(/ FC$/, '');
+  const html = `<html><body style="margin:0;background:#1b1d24;color:#e8e8ea;font:28px Arial;width:720px;padding:28px">
+    <div style="color:#9aa">Mis apuestas · Combinada</div><br>
+    <div style="font-weight:bold">${nombre(m1.homeTeam)}</div>
+    <div style="color:#9aa">Resultado final</div>
+    <div style="display:flex;justify-content:space-between"><span>${nombre(m1.homeTeam)} - ${nombre(m1.awayTeam)}</span><b>1.85</b></div><br>
+    <div style="font-weight:bold">Más de 2.5</div>
+    <div style="color:#9aa">Total de goles</div>
+    <div style="display:flex;justify-content:space-between"><span>${nombre(m2.homeTeam)} - ${nombre(m2.awayTeam)}</span><b>2,10</b></div><br>
+    <div>Cuota total 3.89</div>
+    <div>Importe $5.000</div>
+  </body></html>`;
+  const lienzo = await contexto.newPage();
+  await lienzo.setViewportSize({ width: 776, height: 560 });
+  await lienzo.setContent(html);
+  const imagen = await lienzo.screenshot();
+  await lienzo.close();
+
+  await pagina.goto(URL_APP + '#/cupon');
+  await pagina.waitForSelector('#archivo', { state: 'attached' });
+  await pagina.setInputFiles('#archivo', { name: 'cupon.png', mimeType: 'image/png', buffer: imagen });
+  await pagina.waitForSelector('#guardar-cupon', { timeout: 180000 });
+
+  const filas = await pagina.$$eval('[data-fila]', (els) =>
+    els.map((el) => ({
+      clave: el.querySelector('[data-campo=clave]').value,
+      mercado: el.querySelector('[data-campo=mercado]').value,
+      seleccion: el.querySelector('[data-campo=seleccion]').value,
+      cuota: el.querySelector('[data-campo=cuota]').value,
+    }))
+  );
+  console.log('   Cupón leído:', JSON.stringify(filas));
+  assert.equal(filas.length, 2);
+  assert.deepEqual(filas[0], { clave: `PL:${m1.id}`, mercado: '1X2', seleccion: '1', cuota: '1,85' });
+  assert.deepEqual(filas[1], { clave: `PL:${m2.id}`, mercado: 'GOLES', seleccion: 'mas', cuota: '2,10' });
+  assert.equal(await pagina.inputValue('#importe-cupon'), '5000');
+  await captura('8-cupon');
+
+  await pagina.click('#guardar-cupon');
+  await pagina.waitForSelector('text=📷 cupón');
 }
 
 /* ---------- PWA: service worker y "Compartir" (Web Share Target) ---------- */

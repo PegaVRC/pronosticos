@@ -3,7 +3,7 @@
 App web para estimar resultados de partidos de fútbol con un **modelo de Poisson**.
 Está hecha con HTML, CSS y JavaScript puro, sin backend, y pensada para usarse desde el celular.
 
-> ⚠️ **Los pronósticos son estimaciones estadísticas, no garantías.**
+> ⚠️ **Los pronósticos son estimaciones estadísticas, no garantías.** Si apuestas, hazlo con responsabilidad.
 
 Ligas: **Premier League, LaLiga, Serie A y Champions League**. Los datos vienen de [football-data.org](https://www.football-data.org/).
 
@@ -12,6 +12,11 @@ Ligas: **Premier League, LaLiga, Serie A y Champions League**. Los datos vienen 
 - **Próximos partidos** por liga, cada uno con su % de victoria local, empate y victoria visitante, el marcador más probable y la probabilidad de más de 2,5 goles.
 - **Detalle del partido**: forma reciente (últimos 5 partidos), goles a favor y en contra, y una explicación sencilla de por qué el modelo da ese resultado.
 - **Historial**: guarda tus pronósticos y, cuando el partido termina, marca si se acertó. También muestra el % de aciertos.
+- **Cuotas** (ingreso manual): escribes las cuotas de tu casa de apuestas y la app las compara con el modelo. Muestra la probabilidad implícita, el valor esperado y la etiqueta **VALOR**.
+- **Combinadas**: arma un boleto y ve la cuota total, la probabilidad estimada de acertarla y su valor esperado.
+- **Modelo vs. casas**: con el tiempo, mide si el modelo acierta más que las cuotas.
+- **Lectura de cupones por foto** (OCR en el navegador): sube o comparte una captura del cupón de cualquier casa de apuestas.
+- **App instalable (PWA)**: funciona sin conexión y, en Android, aparece en el menú **Compartir** de la galería.
 - **Caché** de 10 minutos y un limitador que nunca pasa de **10 llamadas por minuto** (el límite del plan gratuito).
 
 ## 1. Conseguir la API key (gratis)
@@ -29,7 +34,18 @@ La key se guarda **solo en el localStorage de tu navegador**. No aparece en el c
 3. En **Build and deployment → Source** elige **Deploy from a branch**.
 4. En **Branch**, elige la rama (por ejemplo `main`) y la carpeta **`/ (root)`**, y luego **Save**.
 5. Espera uno o dos minutos. La app quedará en `https://TU-USUARIO.github.io/pronosticos/`.
-6. En el celular, abre esa dirección y usa **"Añadir a pantalla de inicio"** para tenerla como una app.
+6. En el celular, abre esa dirección e **instala la app**:
+   - **Android (Chrome)**: menú ⋮ → **Instalar app** (o "Añadir a pantalla de inicio").
+   - **iPhone (Safari)**: botón Compartir → **Añadir a pantalla de inicio**.
+
+> GitHub Pages usa HTTPS, que es obligatorio para instalar la app y para el service worker.
+
+### Enviar capturas desde la galería (Android)
+
+Con la app **instalada**, abre una captura de tu cupón en la galería y toca **Compartir → Pronósticos**. La app se abre directamente en "Leer cupón" con la imagen cargada.
+Esto usa la función *Web Share Target*, que funciona en Android con Chrome. En iPhone no existe: allí usa **Leer cupón → Elegir imagen**.
+
+Si cambias archivos de la app, sube el número de `VERSION` en `sw.js` para que los teléfonos que ya la instalaron descarguen la versión nueva.
 
 El archivo `.nojekyll` hace que GitHub Pages sirva los archivos tal cual, sin procesarlos.
 
@@ -45,9 +61,11 @@ python3 -m http.server 8000
 Pruebas (opcionales, necesitan Node.js 18 o superior):
 
 ```bash
-npm test        # pruebas del modelo, sin dependencias
+npm test        # pruebas del modelo, cuotas, lector de cupones y PWA (sin dependencias)
 npm run e2e     # prueba de la interfaz con una API simulada (requiere Playwright)
 ```
+
+La prueba de interfaz también puede leer un cupón con OCR real si le indicas una carpeta con Tesseract.js descargado de npm (`TESS_LOCAL=carpeta npm run e2e`). Mira `tests/e2e.mjs` para ver qué estructura de carpetas espera.
 
 ## Cómo funciona el modelo
 
@@ -68,11 +86,52 @@ Solo se usan partidos **anteriores** a la fecha del encuentro y de la **misma co
 
 **Limitaciones**: el modelo no tiene en cuenta lesiones, alineaciones, rotaciones ni la motivación de los equipos. Al principio de la temporada, y en la Champions, hay pocos partidos de referencia; la app lo indica con la etiqueta *"Pocos datos"*.
 
+## Módulo de cuotas
+
+En el detalle de un partido (antes de que empiece) puedes escribir las cuotas de **1, X y 2**. Si quieres, también las de **más/menos 2,5 goles** y **ambos marcan**. Se aceptan con coma o punto (1,85 o 1.85).
+
+| Concepto | Cómo se calcula |
+|---|---|
+| Probabilidad implícita | 1 ÷ cuota (cuota 2,00 → 50 %) |
+| Margen de la casa | suma de las implícitas del 1X2 − 100 % |
+| **VALOR** | la probabilidad del modelo es mayor que la implícita |
+| Valor esperado (VE) | probabilidad del modelo × cuota − 1 (ganancia media por unidad apostada) |
+
+**Combinadas**: toca **＋** en las selecciones que quieras y ve a la pestaña **Apuestas**. Ahí verás:
+- la cuota total (el producto de las cuotas);
+- la probabilidad estimada por el modelo: se multiplican los partidos distintos. Si eliges dos selecciones del *mismo* partido (por ejemplo, "gana local" y "más de 2,5"), la probabilidad conjunta se calcula exacta sobre la matriz de Poisson;
+- el valor esperado.
+
+**Modelo vs. casas**: cuando terminan los partidos con cuotas guardadas, la app compara:
+- el % de veces que acierta el favorito del modelo frente al de la casa (la cuota más baja);
+- el **error de Brier**, que mide qué tan bien calibradas están las probabilidades (menor es mejor);
+- cuánto habrías ganado o perdido apostando 1 unidad a cada selección con VALOR y a cada combinada.
+
+Con pocos partidos estas cifras dependen mucho del azar: mira la tendencia después de 30 o más.
+
+## Lectura de cupones (OCR)
+
+En **Apuestas → 📷 Leer cupón** puedes elegir una captura, tomar una foto o compartirla desde la galería.
+
+1. **Tesseract.js** (OCR en español) lee el texto en tu teléfono. La imagen **no se sube a ningún servidor**. La librería (~4 MB) se descarga la primera vez y después queda guardada.
+2. Antes de leer, la imagen se agranda, se pasa a escala de grises y se le sube el contraste. Si la captura está en **modo oscuro**, se invierte.
+3. El texto se analiza con **patrones generales**, no con el diseño de una casa concreta (Betano, Coolbet, Jugabet, Betsson…):
+   - partidos escritos como `A vs B`, `A - B`, `A v B`, `A x B`, o en dos líneas seguidas si coinciden con un partido de la API;
+   - cuotas decimales (`1.85` o `1,85`). No se confunden con horas, fechas ni líneas de goles;
+   - mercados: 1X2 o resultado final, doble oportunidad, más/menos goles y ambos marcan;
+   - cuota total e importe.
+4. Los equipos se **emparejan con los partidos de la API** aunque los nombres no coincidan exactamente ("Man Utd" ↔ "Manchester United FC", "Atleti" ↔ "Atlético de Madrid", pequeños errores del OCR…).
+5. Todo aparece en un **formulario editable**. Lo que no se reconoce queda vacío y marcado en amarillo. Si el partido no está en la API (otra liga), elige **"Otro partido"**: entra en la combinada sin estimación del modelo, y su resultado lo marcas tú (✓ / ✗).
+
+**Consejos**: usa capturas de pantalla en lugar de fotos de la pantalla, recorta lo que no sea el cupón y revisa siempre las cuotas antes de guardar.
+
 ## Estructura del código
 
 ```
 index.html            Esqueleto de la página, aviso fijo y navegación inferior
-manifest.json         Datos para instalarla en el celular
+manifest.json         PWA: íconos, modo app y destino de "Compartir" (share_target)
+sw.js                 Service worker: caché sin conexión y recepción de imágenes compartidas
+icons/                Íconos de la app (SVG y PNG)
 css/styles.css        Estilos mobile-first, con modo claro y oscuro automático
 js/config.js          Constantes: ligas, URL de la API, caché y parámetros del modelo
 js/storage.js         Acceso seguro a localStorage (API key y ajustes)
@@ -82,6 +141,13 @@ js/api.js             Cliente de football-data.org (una llamada por liga)
 js/modelo.js          Fuerzas de ataque y defensa, y Poisson
 js/analisis.js        Forma reciente, resumen de goles y explicación en texto
 js/historial.js       Pronósticos guardados y % de aciertos
+js/mercados.js        Mercados (1X2, doble oportunidad, goles, ambos marcan) y su probabilidad
+js/cuotas.js          Probabilidad implícita, valor, combinadas y comparación modelo vs. casas
+js/apuestas.js        Cuotas guardadas, boleto y combinadas
+js/resultados.js      Búsqueda de resultados de partidos terminados
+js/emparejar.js       Comparación tolerante de nombres de equipos
+js/cupon.js           Lectura del texto de un cupón (patrones generales)
+js/ocr.js             Tesseract.js y preparación de la imagen
 js/formato.js         Números y fechas en español
 js/ui.js              Utilidades de interfaz
 js/app.js             Router (#/partidos, #/partido/…, #/historial, #/config)
@@ -121,6 +187,8 @@ tests/                Pruebas del modelo y de la interfaz
   ```
 
   Después, en Ajustes escribe como proxy `https://TU-WORKER.workers.dev/?url=`. No uses proxies públicos de terceros: verían tu API key.
+- **El OCR lee mal el cupón**: prueba con una captura de pantalla nítida y recortada. Siempre puedes corregir los campos a mano antes de guardar.
+- **No aparece "Pronósticos" al compartir**: la app tiene que estar **instalada** desde Chrome en Android. Después de instalarla, puede tardar un poco en aparecer en el menú.
 - **Datos viejos**: toca **↻ Actualizar** en la lista de partidos, o **Vaciar caché** en Ajustes.
 
 ---
