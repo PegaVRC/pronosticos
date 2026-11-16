@@ -31,3 +31,9 @@ test('manifest instalable y con share_target de imágenes', () => {
   assert.equal(m.share_target.enctype, 'multipart/form-data');
   assert.equal(m.share_target.params.files[0].name, 'imagen');
 });
+
+test('La versión de sw.js coincide con VERSION_APP', async () => {
+  const sw = fs.readFileSync(path.join(RAIZ, 'sw.js'), 'utf8');
+  const { VERSION_APP } = await import('../js/config.js');
+  assert.match(sw, new RegExp(`const VERSION = '${VERSION_APP}'`));
+});

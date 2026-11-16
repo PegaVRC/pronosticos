@@ -82,7 +82,19 @@ navegar();
 // PWA: el service worker permite instalar la app, abrirla sin conexión
 // y recibir imágenes compartidas desde la galería (Android).
 if ('serviceWorker' in navigator) {
+  // Si ya había una versión instalada y se activa una nueva, se recarga una vez
+  // para usar los archivos nuevos (sin esto había que cerrar la app a mano).
+  const habiaVersion = Boolean(navigator.serviceWorker.controller);
+  let recargando = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!habiaVersion || recargando) return;
+    recargando = true;
+    location.reload();
+  });
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch((e) => console.warn('Service worker no registrado:', e));
+    navigator.serviceWorker
+      .register('./sw.js')
+      .then((registro) => registro.update()) // busca una versión nueva cada vez que se abre
+      .catch((e) => console.warn('Service worker no registrado:', e));
   });
 }

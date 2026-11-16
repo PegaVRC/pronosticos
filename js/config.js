@@ -5,6 +5,9 @@
  * y se guarda solo en el localStorage de su navegador.
  */
 
+/** Versión de la app (igual que VERSION en sw.js); se muestra en Ajustes */
+export const VERSION_APP = 'v6';
+
 /** URL base de la API v4 de football-data.org */
 export const API_BASE = 'https://api.football-data.org/v4';
 

@@ -10,7 +10,7 @@
  * descarguen la versión nueva.
  */
 
-const VERSION = 'v5';
+const VERSION = 'v6'; // igual que VERSION_APP en js/config.js
 const CACHE_APP = `pronosticos-app-${VERSION}`;
 const CACHE_CDN = 'pronosticos-cdn-v1'; // Tesseract.js y sus datos de idioma
 const CACHE_COMPARTIDO = 'pronosticos-compartido';
@@ -60,7 +60,8 @@ self.addEventListener('install', (evento) => {
   evento.waitUntil(
     caches
       .open(CACHE_APP)
-      .then((cache) => cache.addAll(ARCHIVOS))
+      // cache: 'reload' → descarga del servidor, sin usar la caché HTTP del navegador
+      .then((cache) => cache.addAll(ARCHIVOS.map((url) => new Request(url, { cache: 'reload' }))))
       .then(() => self.skipWaiting())
   );
 });
@@ -109,7 +110,10 @@ self.addEventListener('fetch', (evento) => {
 async function primeroRed(peticion) {
   const cache = await caches.open(CACHE_APP);
   try {
-    const respuesta = await fetch(peticion);
+    // cache: 'no-cache' → el navegador siempre pregunta a GitHub si hay una versión nueva.
+    // Sin esto, GitHub Pages permite reutilizar archivos viejos hasta 10 minutos y,
+    // tras una actualización, la app podía quedar con la versión anterior.
+    const respuesta = await fetch(peticion, { cache: 'no-cache' });
     if (respuesta.ok) cache.put(peticion, respuesta.clone());
     return respuesta;
   } catch {

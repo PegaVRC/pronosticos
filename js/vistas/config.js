@@ -4,7 +4,7 @@
  * La API key se guarda SOLO en el localStorage de este navegador.
  */
 
-import { LIMITE_LLAMADAS } from '../config.js';
+import { LIMITE_LLAMADAS, VERSION_APP } from '../config.js';
 import { obtenerApiKey, guardarApiKey, borrarApiKey, obtenerProxy, guardarProxy, normalizarProxy } from '../storage.js';
 import { vaciarCache } from '../cache.js';
 import { llamadasDisponibles } from '../limitador.js';
@@ -73,7 +73,8 @@ export async function vistaConfig(contenedor) {
       </div>
     </div>
 
-    <p class="suave centrado">Datos: football-data.org · Modelo de Poisson · Los pronósticos son estimaciones estadísticas, no garantías.</p>`;
+    <p class="suave centrado">Datos: football-data.org · Modelo de Poisson · Los pronósticos son estimaciones estadísticas, no garantías.</p>
+    <p class="suave centrado">Versión de la app: <strong>${VERSION_APP}</strong></p>`;
 
   const inputKey = contenedor.querySelector('#api-key');
   const inputProxy = contenedor.querySelector('#proxy');
