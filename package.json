@@ -1,0 +1,10 @@
+{
+  "name": "pronosticos",
+  "private": true,
+  "description": "App web de pronósticos de fútbol (sin dependencias; package.json solo para las pruebas).",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "e2e": "node tests/e2e.mjs"
+  }
+}

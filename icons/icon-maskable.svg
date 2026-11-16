@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Versión "maskable": fondo a sangre y el balón dentro de la zona segura (80 %) -->
+  <rect width="512" height="512" fill="#0f7a43"/>
+  <circle cx="256" cy="256" r="120" fill="#fff"/>
+  <polygon points="256,200 309,238 289,301 223,301 203,238" fill="#13221a"/>
+  <path d="M256 200V139M309 238l58-19M289 301l35 50M223 301l-35 50M203 238l-58-19" stroke="#13221a" stroke-width="13" stroke-linecap="round"/>
+</svg>
