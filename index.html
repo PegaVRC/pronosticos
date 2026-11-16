@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f7a43">
+  <meta name="description" content="Pronósticos de fútbol basados en estadísticas (modelo de Poisson).">
+  <title>Pronósticos</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <!-- Cabecera con el nombre de la app -->
+  <header class="cabecera">
+    <h1 class="cabecera__titulo">⚽ Pronósticos</h1>
+  </header>
+
+  <!-- Aviso permanente: visible en todas las pantallas -->
+  <p class="aviso" role="note">
+    ⚠️ Los pronósticos son estimaciones estadísticas, no garantías.
+  </p>
+
+  <!-- Aquí cada vista dibuja su contenido -->
+  <main id="app" class="contenido" aria-live="polite"></main>
+
+  <!-- Mensajes temporales (toasts) -->
+  <div id="toast" class="toast" role="status" hidden></div>
+
+  <!-- Navegación inferior, cómoda para usar con el pulgar -->
+  <nav class="nav" aria-label="Navegación principal">
+    <a href="#/partidos" class="nav__enlace" data-ruta="partidos">
+      <span class="nav__icono" aria-hidden="true">📅</span>Partidos
+    </a>
+    <a href="#/historial" class="nav__enlace" data-ruta="historial">
+      <span class="nav__icono" aria-hidden="true">📊</span>Historial
+    </a>
+    <a href="#/config" class="nav__enlace" data-ruta="config">
+      <span class="nav__icono" aria-hidden="true">⚙️</span>Ajustes
+    </a>
+  </nav>
+
+  <noscript>
+    <p class="error">Esta app necesita JavaScript activado.</p>
+  </noscript>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

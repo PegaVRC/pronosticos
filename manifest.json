@@ -1,0 +1,14 @@
+{
+  "name": "Pronósticos",
+  "short_name": "Pronósticos",
+  "description": "Pronósticos de fútbol basados en estadísticas.",
+  "lang": "es",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0f1512",
+  "theme_color": "#0f7a43",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
