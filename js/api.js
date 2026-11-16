@@ -95,6 +95,8 @@ function compactarEquipo(e) {
   return {
     id: e?.id ?? null,
     nombre: e?.shortName || e?.name || 'Por definir',
+    nombreCompleto: e?.name || '', // para emparejar nombres leídos de cupones
+    tla: e?.tla || '', // siglas de 3 letras (p. ej. "ARS")
     escudo: e?.crest || '',
   };
 }

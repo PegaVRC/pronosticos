@@ -33,6 +33,8 @@ const ARCHIVOS = [
   'js/cache.js',
   'js/config.js',
   'js/cuotas.js',
+  'js/cupon.js',
+  'js/emparejar.js',
   'js/formato.js',
   'js/historial.js',
   'js/limitador.js',
