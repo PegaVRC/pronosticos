@@ -5,7 +5,7 @@
  */
 
 import { PARTIDOS_FORMA } from './config.js';
-import { partidosJugadosAntes } from './modelo.js';
+import { partidosJugadosAntes, signo } from './modelo.js';
 import { decimal, porcentaje } from './formato.js';
 
 /**
@@ -114,6 +114,16 @@ export function explicar(pron, partido, forma) {
     frases.push(`${V} parte como favorito con un ${porcentaje(pron.pVisita)} de probabilidad de ganar fuera.`);
   } else {
     frases.push(`El empate es el resultado más probable (${porcentaje(pron.pEmpate)}).`);
+  }
+
+  // Aclaración frecuente: el marcador exacto más probable puede ser un empate
+  // aunque, sumando todos los marcadores, gane más a menudo un equipo.
+  if (signo(pron.marcador.local, pron.marcador.visita) !== pron.favorito) {
+    frases.push(
+      `El marcador exacto más probable es ${pron.marcador.local}-${pron.marcador.visita}, pero solo tiene un ${porcentaje(
+        pron.marcador.prob
+      )}: al sumar todos los marcadores posibles, el resultado más probable es otro.`
+    );
   }
 
   // 4) Goles totales

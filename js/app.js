@@ -11,10 +11,12 @@
 import { obtenerApiKey } from './storage.js';
 import { notificar } from './ui.js';
 import { vistaPartidos } from './vistas/partidos.js';
+import { vistaDetalle } from './vistas/detalle.js';
 import { vistaConfig } from './vistas/config.js';
 
 const rutas = {
   partidos: vistaPartidos,
+  partido: vistaDetalle,
   config: vistaConfig,
 };
 
