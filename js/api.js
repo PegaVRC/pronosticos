@@ -72,7 +72,26 @@ export async function pedir(ruta) {
     throw new ErrorApi('Se alcanzó el límite de 10 llamadas por minuto. Espera un momento y vuelve a intentarlo.', 'limite');
   }
   if (!respuesta.ok) {
-    throw new ErrorApi(`La API respondió con un error (${respuesta.status}). Inténtalo más tarde.`, 'servidor');
+    // El cuerpo suele explicar el problema (de la API o del proxy, p. ej. "URL no permitida")
+    let detalle = '';
+    try {
+      const texto = (await respuesta.text()).trim();
+      try {
+        detalle = JSON.parse(texto).message || '';
+      } catch {
+        detalle = texto.slice(0, 160);
+      }
+    } catch {
+      /* sin cuerpo legible */
+    }
+    const pista =
+      obtenerProxy() && /url no permitida/i.test(detalle)
+        ? ' Revisa que el proxy en Ajustes termine en "/?url=".'
+        : ' Inténtalo más tarde.';
+    throw new ErrorApi(
+      `La API respondió con un error (${respuesta.status})${detalle ? `: ${detalle}` : ''}.${pista}`,
+      'servidor'
+    );
   }
   return respuesta.json();
 }

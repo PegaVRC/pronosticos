@@ -63,8 +63,21 @@ export const borrarApiKey = () => borrar('apiKey');
  * Proxy CORS opcional. Si el navegador bloquea la API por CORS,
  * el usuario puede indicar un proxy propio; la URL de la API se añade al final.
  */
-export const obtenerProxy = () => leer('proxy', '');
-export const guardarProxy = (url) => escribir('proxy', String(url).trim());
+export const obtenerProxy = () => normalizarProxy(leer('proxy', ''));
+export const guardarProxy = (url) => escribir('proxy', normalizarProxy(url));
+
+/**
+ * Completa la dirección del proxy si falta el parámetro final:
+ *   "https://x.workers.dev"   → "https://x.workers.dev/?url="
+ *   "https://x.workers.dev/"  → "https://x.workers.dev/?url="
+ * Si ya trae "?" (p. ej. "…/?url=" u otro formato), se deja como está.
+ */
+export function normalizarProxy(url) {
+  let p = String(url ?? '').trim();
+  if (!p || p.includes('?')) return p;
+  if (!p.endsWith('/')) p += '/';
+  return `${p}?url=`;
+}
 
 /** Última liga elegida en la pantalla de partidos */
 export const obtenerLigaActual = () => leer('ligaActual', 'PL');
