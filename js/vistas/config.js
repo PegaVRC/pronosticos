@@ -10,6 +10,7 @@ import { vaciarCache } from '../cache.js';
 import { llamadasDisponibles } from '../limitador.js';
 import { obtenerPartidosLiga } from '../api.js';
 import { borrarHistorial, obtenerHistorial } from '../historial.js';
+import { borrarApuestas } from '../apuestas.js';
 import { escaparHtml, notificar, htmlError } from '../ui.js';
 
 export async function vistaConfig(contenedor) {
@@ -68,6 +69,7 @@ export async function vistaConfig(contenedor) {
         <button type="button" class="boton boton--secundario" id="vaciar-cache">Vaciar caché</button>
         ${key ? '<button type="button" class="boton boton--peligro" id="borrar-key">Borrar API key</button>' : ''}
         <button type="button" class="boton boton--peligro" id="borrar-historial">Borrar historial</button>
+        <button type="button" class="boton boton--peligro" id="borrar-apuestas">Borrar cuotas y combinadas</button>
       </div>
     </div>
 
@@ -133,6 +135,12 @@ export async function vistaConfig(contenedor) {
     vaciarCache();
     notificar('API key borrada.');
     vistaConfig(contenedor);
+  });
+
+  contenedor.querySelector('#borrar-apuestas').addEventListener('click', () => {
+    if (!confirm('¿Borrar todas las cuotas, el boleto y las combinadas guardadas? No se puede deshacer.')) return;
+    borrarApuestas();
+    notificar('Cuotas y combinadas borradas.');
   });
 
   contenedor.querySelector('#borrar-historial').addEventListener('click', () => {

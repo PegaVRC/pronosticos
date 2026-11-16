@@ -10,6 +10,9 @@ import { obtenerPartidosLiga } from '../api.js';
 import { pronosticar, signo } from '../modelo.js';
 import { formaReciente, resumenGoles, explicar } from '../analisis.js';
 import { estaGuardado, guardarPronostico, eliminarPronostico } from '../historial.js';
+import { probSeleccion } from '../mercados.js';
+import { obtenerRegistro } from '../apuestas.js';
+import { montarCuotas } from './cuotasPartido.js';
 import { decimal, porcentaje, fechaHora, fechaCorta } from '../formato.js';
 import {
   escaparHtml,
@@ -102,6 +105,9 @@ export async function vistaDetalle(contenedor, params, sigueActiva) {
       Partido terminado · el modelo ${acierto ? 'acertó' : 'falló'} el 1X2</span></p>`;
   }
 
+  const pAmbos = probSeleccion({ mercado: 'AMBOS', seleccion: 'si' }, pron.lambdaLocal, pron.lambdaVisita);
+  const mostrarCuotas = sePuedeGuardar || obtenerRegistro(partido.id);
+
   const otrosMarcadores = pron.marcadores
     .map((m) => `<span>${m.local}-${m.visita} · ${porcentaje(m.prob)}</span>`)
     .join('');
@@ -132,6 +138,8 @@ export async function vistaDetalle(contenedor, params, sigueActiva) {
       <div class="cifras">
         <div class="cifra"><span class="cifra__valor">${pron.marcador.local}-${pron.marcador.visita}</span><span class="cifra__nombre">Marcador más probable (${porcentaje(pron.marcador.prob)})</span></div>
         <div class="cifra"><span class="cifra__valor">${porcentaje(pron.pMas25)}</span><span class="cifra__nombre">Más de 2,5 goles</span></div>
+        <div class="cifra"><span class="cifra__valor">${porcentaje(pAmbos)}</span><span class="cifra__nombre">Ambos marcan</span></div>
+        <div class="cifra"><span class="cifra__valor">${decimal(pron.lambdaLocal + pron.lambdaVisita)}</span><span class="cifra__nombre">Goles esperados en total</span></div>
         <div class="cifra"><span class="cifra__valor">${decimal(pron.lambdaLocal)}</span><span class="cifra__nombre">Goles esperados ${escaparHtml(local.nombre)}</span></div>
         <div class="cifra"><span class="cifra__valor">${decimal(pron.lambdaVisita)}</span><span class="cifra__nombre">Goles esperados ${escaparHtml(visita.nombre)}</span></div>
       </div>
@@ -143,6 +151,8 @@ export async function vistaDetalle(contenedor, params, sigueActiva) {
           : ''
       }
     </section>
+
+    ${mostrarCuotas ? '<section class="tarjeta" id="tarjeta-cuotas"></section>' : ''}
 
     <section class="tarjeta">
       <h2>¿Por qué este pronóstico?</h2>
@@ -173,6 +183,10 @@ export async function vistaDetalle(contenedor, params, sigueActiva) {
     </section>
 
     <p class="suave centrado">Los pronósticos son estimaciones estadísticas, no garantías.</p>`;
+
+  // Tarjeta de cuotas (módulo de apuestas)
+  const tarjetaCuotas = contenedor.querySelector('#tarjeta-cuotas');
+  if (tarjetaCuotas) montarCuotas(tarjetaCuotas, { liga: liga.codigo, partido, pron, editable: sePuedeGuardar });
 
   // Botón guardar / quitar del historial
   const boton = contenedor.querySelector('#guardar');

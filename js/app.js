@@ -5,6 +5,7 @@
  *   #/partidos/PL         → próximos partidos de una liga
  *   #/partido/PL/123456   → detalle de un partido
  *   #/historial           → mis pronósticos
+ *   #/apuestas            → cuotas, boleto y combinadas
  *   #/config              → ajustes (API key)
  */
 
@@ -13,17 +14,19 @@ import { notificar } from './ui.js';
 import { vistaPartidos } from './vistas/partidos.js';
 import { vistaDetalle } from './vistas/detalle.js';
 import { vistaHistorial } from './vistas/historial.js';
+import { vistaApuestas } from './vistas/apuestas.js';
 import { vistaConfig } from './vistas/config.js';
 
 const rutas = {
   partidos: vistaPartidos,
   partido: vistaDetalle,
   historial: vistaHistorial,
+  apuestas: vistaApuestas,
   config: vistaConfig,
 };
 
 /** Pestaña de la barra inferior que se marca para cada ruta. */
-const pestanaDeRuta = { partidos: 'partidos', partido: 'partidos', historial: 'historial', config: 'config' };
+const pestanaDeRuta = { partidos: 'partidos', partido: 'partidos', historial: 'historial', apuestas: 'apuestas', cupon: 'apuestas', config: 'config' };
 
 /** Contador de navegaciones: permite descartar cargas lentas de pantallas anteriores. */
 let navegacionActual = 0;

@@ -9,7 +9,7 @@ const numero1 = new Intl.NumberFormat('es-ES', { minimumFractionDigits: 1, maxim
 export const decimal = (n) => numero1.format(n);
 
 /** 0.4567 → "46 %" */
-export const porcentaje = (p) => `${Math.round(p * 100)} %`;
+export const porcentaje = (p) => `${Math.round(p * 100)}\u00a0%`; // espacio no separable: el % no queda solo en otra línea
 
 /** Fecha corta con hora local: "sáb 22 nov, 16:00" */
 export function fechaHora(iso) {
@@ -39,3 +39,6 @@ export function claveDia(iso) {
   const d = new Date(iso);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
+
+/** Cuota decimal con 2 decimales mínimo: 1.8 → "1,80" */
+export const cuota = (c) => c.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });

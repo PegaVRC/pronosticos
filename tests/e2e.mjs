@@ -146,6 +146,56 @@ if (process.env.SOLO_PARTIDOS !== '1') {
   await pagina.waitForSelector('.historial-item .etiqueta--ok, .historial-item .etiqueta--fallo');
   assert.match(await pagina.textContent('.resumen'), /%/);
   await captura('4-historial');
+
+  // 7) Cuotas en el detalle: comparación con el modelo y boleto
+  await pagina.goto(URL_APP + '#/partidos/PL');
+  await pagina.locator('.partido').first().click();
+  await pagina.waitForSelector('#c-1');
+  await pagina.fill('#c-1', '1,90');
+  await pagina.fill('#c-X', '3,40');
+  await pagina.fill('#c-2', '4,20');
+  await pagina.fill('#c-mas', '1.95');
+  await pagina.waitForSelector('.lista-cuotas .seleccion:nth-child(4)');
+  assert.match(await pagina.textContent('#tarjeta-cuotas'), /Margen de la casa/);
+  await pagina.click('#guardar-cuotas');
+  await pagina.click('[data-fila="0"]');
+  await pagina.click('[data-fila="3"]');
+  await captura('5-cuotas');
+
+  // Segunda selección de otro partido
+  await pagina.goto(URL_APP + '#/partidos/PL');
+  await pagina.locator('.partido').nth(1).click();
+  await pagina.waitForSelector('#c-1');
+  await pagina.fill('#c-2', '2,60');
+  await pagina.click('[data-fila="0"]');
+
+  // 8) Boleto → combinada
+  await pagina.click('[data-ruta=apuestas]');
+  await pagina.waitForSelector('#guardar-combinada');
+  const textoBoleto = await pagina.textContent('.tarjeta');
+  assert.match(textoBoleto, /Boleto \(3\)/);
+  assert.match(textoBoleto, /mismo partido/);
+  await pagina.fill('#importe', '5000');
+  await captura('6-boleto');
+  await pagina.click('#guardar-combinada');
+  await pagina.waitForSelector('text=Mis combinadas');
+
+  // 9) Simular que los partidos ya se jugaron: se apuntan a partidos terminados
+  await pagina.evaluate(() => {
+    const pasado = new Date(Date.now() - 30 * 86400000).toISOString();
+    const ids = [100004, 100005];
+    const regs = JSON.parse(localStorage.getItem('pronosticos:cuotas'));
+    regs.forEach((r, i) => Object.assign(r, { partidoId: ids[i % 2], fecha: pasado }));
+    localStorage.setItem('pronosticos:cuotas', JSON.stringify(regs));
+    const combs = JSON.parse(localStorage.getItem('pronosticos:combinadas'));
+    combs[0].selecciones.forEach((s, i) => Object.assign(s, { partidoId: i < 2 ? 100004 : 100005, fecha: pasado }));
+    localStorage.setItem('pronosticos:combinadas', JSON.stringify(combs));
+  });
+  await pagina.reload();
+  await pagina.waitForSelector('text=Modelo vs. casas');
+  await pagina.waitForSelector('text=Acierta el favorito');
+  assert.match(await pagina.textContent('#app'), /Combinadas/);
+  await captura('7-apuestas');
 }
 
 assert.deepEqual(erroresConsola, [], `errores de JavaScript: ${erroresConsola.join(' | ')}`);
